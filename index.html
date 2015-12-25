@@ -1,0 +1,221 @@
+<div id="appointmentWrapper">
+	<a class="waves-effect waves-light btn" href="#" id="prev">Prev</a>
+	<canvas id="appointmentPie" width="300" height="200"></canvas>
+	<a class="waves-effect waves-light btn" href="#" id="next">Next</a>
+</div>
+
+<p>
+	<input class="with-gap" name="group" type="radio" id="test1" value="year" checked />
+	<label for="test1">Year</label>
+
+	<input class="with-gap" name="group" type="radio" id="test2" value="month" />
+	<label for="test2">Month</label>
+
+	<input class="with-gap" name="group" type="radio" id="test3" value="week"/>
+	<label for="test3">Week</label>
+</p>
+
+<script>
+	$(function() {
+		var range = $(':radio').val();
+
+		$(':radio').on('change', function() {
+			switch($(this).val()) {
+				case 'year':
+					range = 'year';
+					break;
+				case 'month':
+					range = 'month';
+					break;
+				case 'week':
+					range = 'week';
+					break;
+				}
+				console.log(range);
+		});
+
+		// read values from localstorage
+		var monthOrder = parseInt(localStorage.getItem('monthOrder'), 10) || 5;
+		var yearOrder = parseInt(localStorage.getItem('yearOrder'), 10) || 2000;
+		var weekOrder = parseInt(localStorage.getItem('weekOrder'), 10) || 25;
+
+		// draw initial chart
+		drawMonthChart(monthOrder);
+
+		// diag
+		console.log(monthOrder);
+		console.log(yearOrder);
+		console.log(weekOrder);
+
+		// cycle function up
+		function cyclePrev(beggining, end, timeInterval) {
+			switch (timeInterval) {
+				case 'yearOrder':
+					if (yearOrder <= beggining) {
+						yearOrder = end;
+					}
+					else {
+						yearOrder -= 1;
+					}
+					return yearOrder;
+				break;
+
+				case 'monthOrder':
+					if (monthOrder <= beggining) {
+						monthOrder = end;
+					}
+					else {
+						monthOrder -= 1;
+					}
+					return monthOrder;
+				break;
+
+				case 'weekOrder':
+					if (weekOrder <= beggining) {
+						weekOrder = end;
+					}
+					else {
+						weekOrder -= 1;
+					}
+					return weekOrder;
+				break;
+
+				defult: return 'Error';
+			}
+
+		}
+
+		// cycle function down
+		function cycleNext(beggining, end, timeInterval) {
+			switch (timeInterval) {
+				case 'yearOrder':
+					if (yearOrder >= end) {
+						yearOrder = beggining;
+					} 
+					else {
+						yearOrder += 1;
+					}
+					return yearOrder;
+				break;
+
+				case 'monthOrder':
+					if (monthOrder >= end) {
+						monthOrder = beggining;
+					} 
+					else {
+						monthOrder += 1;
+					}
+					return monthOrder;
+				break;
+
+				case 'weekOrder':
+					if (weekOrder >= end) {
+						weekOrder = beggining;
+					} 
+					else {
+						weekOrder += 1;
+					}
+					return weekOrder;
+				break;
+
+				default: return 'Error';
+			}
+		}
+
+		$('#prev').on('click', function(e) {
+			e.preventDefault();
+
+			switch (range) {
+				case 'year':
+					drawYearChart(cyclePrev(2005, 2020, 'yearOrder'));
+					localStorage.setItem('yearOrder', yearOrder);
+					console.log('Year, ', yearOrder)
+				break;
+
+				case 'month':
+					drawMonthChart(cyclePrev(1, 12, 'monthOrder'));
+					localStorage.setItem('monthOrder', monthOrder);
+					console.log(monthOrder);
+				break;
+
+				case 'week':
+					drawWeekChart(cyclePrev(1, 52, 'monthOrder'));
+					localStorage.setItem('weekOrder', weekOrder);
+					console.log(`weekOrder, ${weekOrder}`);
+				break;
+
+			}
+		});
+
+		$('#next').on('click', function(e) {
+			e.preventDefault();
+
+			switch (range) {
+				case 'year':
+					drawYearChart(cycleNext(2005, 2020, 'yearOrder'));
+					localStorage.setItem('yearOrder', yearOrder);
+					console.log('Year, ', yearOrder);
+				break;
+
+				case 'month':
+					// console.log(cycleNext(1, 12, 'm'));
+					drawMonthChart(cycleNext(1, 12, 'monthOrder'));
+					localStorage.setItem('monthOrder', monthOrder);
+					console.log(monthOrder);
+				break;
+
+				case 'week':
+					drawWeekChart(cycleNext(1, 52, 'monthOrder'));
+					localStorage.setItem('weekOrder', weekOrder);
+					console.log(`weekOrder, ${weekOrder}`);
+				break;
+
+			}
+		});
+
+		// draw year chart function	
+		function drawYearChart(year) {
+			var pieData = [];
+
+			$.get("statistic/get-appointments-by-year/" + year, function( data ) {
+				var grouped = _.groupBy(data, 'appointment_type_id');
+
+				console.log('Data -> ', grouped);
+
+				_.each(grouped, (data) => {
+					pieData.push({
+						value: data.length,
+						color: data[0]['color']['code'],
+						label: data[0]['appointment_type']['name'],
+					})
+				});
+
+				var appointmentPie = $("#appointmentPie").get(0).getContext("2d");
+				var appointmentPieChart = new Chart(appointmentPie).Pie(pieData, []);
+			});
+		}
+
+		// draw month chart function	
+		function drawMonthChart(month) {
+			var pieData = [];
+
+			$.get("statistic/get-appointments-by-month/" + month, function( data ) {
+				var grouped = _.groupBy(data, 'appointment_type_id');
+
+				console.log('Data -> ', grouped);
+
+				_.each(grouped, (data) => {
+					pieData.push({
+						value: data.length,
+						color: data[0]['color']['code'],
+						label: data[0]['appointment_type']['name'],
+					})
+				});
+
+				var appointmentPie = $("#appointmentPie").get(0).getContext("2d");
+				var appointmentPieChart = new Chart(appointmentPie).Pie(pieData, []);
+			});
+		}
+
+	})
+</script>
